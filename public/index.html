@@ -1,0 +1,2398 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>H4E · Tools</title>
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0c0c0e;
+      --panel:   #111115;
+      --border:  #1c1c24;
+      --border2: #2a2a38;
+      --accent:  #ff5c35;
+      --accent2: #ff8c35;
+      --green:   #35ffb0;
+      --text:    #e2e2ec;
+      --muted:   #52526a;
+      --mono:    'IBM Plex Mono', monospace;
+      --display: 'Bebas Neue', sans-serif;
+      --sans:    'DM Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    body::after {
+      content:''; position:fixed; inset:0; pointer-events:none; z-index:999;
+      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      opacity:0.03;
+    }
+
+    /* ── Header ── */
+    header { text-align:center; margin-bottom:32px; }
+    .eyebrow {
+      display:inline-flex; align-items:center; gap:7px;
+      font-family:var(--mono); font-size:10px; letter-spacing:.15em;
+      text-transform:uppercase; color:var(--accent);
+      background:rgba(255,92,53,.07); border:1px solid rgba(255,92,53,.2);
+      padding:5px 13px; border-radius:20px; margin-bottom:12px;
+    }
+    .eyebrow::before { content:'●'; font-size:7px; animation:blink 1.4s infinite; }
+    @keyframes blink { 0%,100%{opacity:1}50%{opacity:.2} }
+    h1 { font-family:var(--display); font-size:clamp(2.6rem,5vw,4.5rem); line-height:.95; letter-spacing:.02em; }
+    h1 em { color:var(--accent); font-style:normal; }
+    .tagline { margin-top:8px; font-family:var(--mono); font-size:11px; color:var(--muted); }
+
+    /* ── Layout ── */
+    .layout {
+      display:flex; gap:18px; align-items:flex-start;
+      width:100%; max-width:1080px;
+    }
+    .col-left  { flex:0 0 490px; min-width:0; }
+    .col-right { flex:1; min-width:0; }
+    @media (max-width:960px) {
+      .layout { flex-direction:column; }
+      .col-left,.col-right { width:100%; flex:none; }
+    }
+
+    /* ── Card ── */
+    .card {
+      background:var(--panel); border:1px solid var(--border);
+      border-radius:16px; overflow:hidden;
+    }
+
+    /* ── Tabs ── */
+    .tabs { display:flex; border-bottom:1px solid var(--border); }
+    .tab {
+      flex:1; padding:12px 0;
+      font-family:var(--mono); font-size:11px;
+      letter-spacing:.06em; text-transform:uppercase;
+      color:var(--muted); cursor:pointer;
+      border:none; background:none;
+      border-bottom:2px solid transparent; transition:all .15s;
+    }
+    .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+
+    /* ── Drop zone ── */
+    #dropzone {
+      margin:22px 22px 0; padding:32px 22px;
+      border:1.5px dashed var(--border2); border-radius:10px;
+      text-align:center; cursor:pointer;
+      transition:border-color .2s, background .2s;
+    }
+    #dropzone:hover, #dropzone.over {
+      border-color:var(--accent); background:rgba(255,92,53,.03);
+    }
+    .dz-icon  { font-size:28px; margin-bottom:8px; display:block; }
+    .dz-title { font-weight:600; font-size:.875rem; margin-bottom:4px; }
+    .dz-sub   { font-family:var(--mono); font-size:10px; color:var(--muted); line-height:1.7; }
+    #fileInput { display:none; }
+
+    /* ── File info ── */
+    #fileInfo {
+      display:none; margin:14px 22px 0; padding:11px 14px;
+      background:rgba(255,255,255,.025); border:1px solid var(--border2);
+      border-radius:8px; flex-direction:row; gap:10px; align-items:center;
+    }
+    .fi-icon { font-size:22px; flex-shrink:0; }
+    .fi-name { font-weight:600; font-size:.8rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .fi-meta { font-family:var(--mono); font-size:10px; color:var(--muted); margin-top:2px; }
+
+    /* ── Config ── */
+    .config-toggle {
+      display:flex; align-items:center; justify-content:space-between;
+      margin:14px 22px 0; padding:10px 13px;
+      background:rgba(255,255,255,.02); border:1px solid var(--border);
+      border-radius:8px; cursor:pointer; user-select:none;
+    }
+    .config-toggle span { font-family:var(--mono); font-size:10px; color:var(--muted); }
+    .config-toggle .arr { transition:transform .2s; }
+    .config-toggle.open .arr { transform:rotate(180deg); }
+    .config-panel {
+      display:none; margin:0 22px; padding:13px;
+      background:rgba(255,255,255,.015); border:1px solid var(--border);
+      border-top:none; border-radius:0 0 8px 8px;
+    }
+    .config-panel.open { display:block; }
+    .config-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+    .cfg-field label {
+      display:block; font-family:var(--mono); font-size:9px;
+      color:var(--muted); letter-spacing:.06em;
+      text-transform:uppercase; margin-bottom:3px;
+    }
+    .cfg-field input {
+      width:100%; padding:6px 8px;
+      background:var(--bg); border:1px solid var(--border2);
+      border-radius:6px; color:var(--text);
+      font-family:var(--mono); font-size:11px;
+      outline:none; transition:border-color .15s;
+    }
+    .cfg-field input:focus { border-color:var(--accent); }
+    .cfg-hint { margin-top:9px; font-family:var(--mono); font-size:9px; color:var(--muted); line-height:1.8; }
+
+    /* ── Progress ── */
+    #progressBox { display:none; margin:0 22px 22px; }
+    .prog-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
+    .prog-label  { font-family:var(--mono); font-size:10px; color:var(--muted); }
+    .prog-pct    { font-family:var(--mono); font-size:12px; font-weight:600; color:var(--accent); }
+    .prog-track  { height:3px; background:var(--border); border-radius:2px; overflow:hidden; margin-bottom:7px; }
+    .prog-fill   { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:2px; width:0%; transition:width .4s; }
+    .prog-status { font-family:var(--mono); font-size:10px; color:var(--muted); }
+
+    /* ── Log ── */
+    #logBox {
+      margin:18px 22px; height:160px; overflow-y:auto;
+      background:var(--bg); border:1px solid var(--border);
+      border-radius:8px; padding:10px;
+      font-family:var(--mono); font-size:10px; color:var(--muted); line-height:1.8;
+    }
+    .log-entry { display:flex; gap:8px; }
+    .log-time  { color:var(--border2); flex-shrink:0; }
+    .log-ok    { color:var(--green); }
+    .log-err   { color:var(--accent); }
+
+    /* ── Result ── */
+    #resultBox {
+      display:none; margin:0 22px 22px; padding:18px;
+      background:rgba(53,255,176,.04); border:1px solid rgba(53,255,176,.2);
+      border-radius:10px; text-align:center;
+    }
+    .res-icon  { font-size:28px; margin-bottom:7px; }
+    .res-title { font-weight:700; font-size:.9rem; color:var(--green); }
+    .res-sub   { font-family:var(--mono); font-size:10px; color:var(--muted); margin-top:3px; }
+    .btn-dl {
+      display:inline-flex; align-items:center; gap:8px;
+      margin-top:13px; padding:10px 22px;
+      background:var(--green); color:#0c0c0e;
+      border:none; border-radius:8px;
+      font-family:var(--sans); font-weight:700; font-size:.85rem;
+      cursor:pointer; text-decoration:none; transition:all .15s;
+    }
+    .btn-dl:hover { background:#5cffca; transform:translateY(-1px); }
+
+    /* ── Error ── */
+    #errorBox {
+      display:none; margin:0 22px 22px; padding:11px 14px;
+      background:rgba(255,92,53,.07); border:1px solid rgba(255,92,53,.2);
+      border-radius:8px; font-family:var(--mono); font-size:11px;
+      color:var(--accent); line-height:1.6;
+    }
+
+    /* ── Actions ── */
+    .actions { display:flex; gap:9px; margin:14px 22px 22px; }
+    .btn {
+      flex:1; padding:12px; border:none; border-radius:8px;
+      font-family:var(--sans); font-weight:600;
+      font-size:.875rem; cursor:pointer; transition:all .15s;
+    }
+    .btn-primary { background:var(--accent); color:#fff; }
+    .btn-primary:hover:not(:disabled) { background:#ff7a58; transform:translateY(-1px); }
+    .btn-primary:disabled { opacity:.35; cursor:not-allowed; }
+    .btn-ghost { background:transparent; color:var(--muted); border:1px solid var(--border2); }
+    .btn-ghost:hover { color:var(--text); border-color:var(--muted); }
+
+    /* ── Chips ── */
+    .chips { display:flex; flex-wrap:wrap; gap:5px; padding:11px 22px; border-top:1px solid var(--border); }
+    .chip { font-family:var(--mono); font-size:9px; color:var(--muted); display:flex; align-items:center; gap:4px; }
+    .chip::before { content:'◆'; font-size:6px; color:var(--border2); }
+
+    /* ════════════════════════════════════
+       PREVIEW CARD (right column)
+    ════════════════════════════════════ */
+    .preview-card {
+      background:var(--panel); border:1px solid var(--border);
+      border-radius:16px; overflow:hidden;
+      position:sticky; top:20px;
+    }
+
+    .preview-header {
+      padding:12px 18px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .preview-title { font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+    .preview-hint  { font-family:var(--mono); font-size:9px; color:var(--muted); }
+    .preview-hint b { color:var(--accent); font-weight:500; }
+
+    /* Video area */
+    .video-wrapper {
+      position:relative; display:flex;
+      align-items:center; justify-content:center;
+      background:#000; min-height:180px; overflow:hidden;
+    }
+    #videoEl {
+      display:block; max-width:100%; max-height:520px;
+      object-fit:contain; pointer-events:none;
+    }
+
+    /* Placeholder */
+    #videoPlaceholder {
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      gap:10px; padding:56px 30px; width:100%;
+    }
+    .ph-icon { font-size:38px; opacity:.3; }
+    .ph-text { font-family:var(--mono); font-size:10px; text-align:center; line-height:1.8; opacity:.5; }
+
+    /* ── Overlay ── */
+    #selOverlay {
+      position:absolute; inset:0;
+      display:none;
+      user-select:none;
+    }
+
+    /* Zona activă — exact pe conținutul video, calculată dinamic prin JS */
+    #videoArea {
+      position:absolute;
+      cursor:crosshair;
+      /* border vizual subtle pentru a arăta limitele video */
+      outline: 1px solid rgba(255,255,255,0.06);
+    }
+
+    /* Dim masks outside selection */
+    .mask { position:absolute; background:rgba(0,0,0,.6); pointer-events:none; transition:none; }
+
+    /* Selection box */
+    #selBox {
+      position:absolute;
+      border:2px solid var(--accent);
+      cursor:move;
+      /* inner shimmer */
+      background:rgba(255,92,53,.06);
+    }
+    /* marching ants dashed border */
+    #selBox::after {
+      content:''; position:absolute; inset:-3px;
+      border:1px dashed rgba(255,92,53,.5);
+      animation:ants 1s linear infinite;
+      pointer-events:none;
+    }
+    @keyframes ants {
+      from { clip-path: inset(0); }
+    }
+
+    /* Resize handles */
+    .h {
+      position:absolute; width:11px; height:11px;
+      background:#fff; border:2px solid var(--accent);
+      border-radius:2px; z-index:10;
+    }
+    .h.nw { top:-6px; left:-6px;  cursor:nw-resize; }
+    .h.ne { top:-6px; right:-6px; cursor:ne-resize; }
+    .h.sw { bottom:-6px; left:-6px;  cursor:sw-resize; }
+    .h.se { bottom:-6px; right:-6px; cursor:se-resize; }
+    .h.n  { top:-6px;    left:50%; transform:translateX(-50%); cursor:n-resize; }
+    .h.s  { bottom:-6px; left:50%; transform:translateX(-50%); cursor:s-resize; }
+    .h.w  { left:-6px;   top:50%;  transform:translateY(-50%); cursor:w-resize; }
+    .h.e  { right:-6px;  top:50%;  transform:translateY(-50%); cursor:e-resize; }
+
+    /* Label inside box */
+    #selLabel {
+      position:absolute; top:5px; left:50%; transform:translateX(-50%);
+      font-family:var(--mono); font-size:9px;
+      background:var(--accent); color:#fff;
+      padding:2px 8px; border-radius:3px;
+      white-space:nowrap; pointer-events:none;
+      letter-spacing:.04em; font-weight:600;
+    }
+
+    /* Scrubber */
+    .scrub-row {
+      padding:8px 18px 12px; border-top:1px solid var(--border);
+    }
+    .scrub-top {
+      display:flex; align-items:center; gap:8px; margin-bottom:6px;
+    }
+    /* Play / Pause button */
+    #btnPlay {
+      flex-shrink:0; width:28px; height:28px;
+      border-radius:50%;
+      background:var(--accent); border:none; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      font-size:10px; transition:all .15s; color:#fff;
+    }
+    #btnPlay:hover { background:#ff7a58; transform:scale(1.08); }
+    .scrub-slider-wrap { flex:1; display:flex; flex-direction:column; gap:3px; }
+    .scrub-label {
+      font-family:var(--mono); font-size:9px; color:var(--muted);
+      display:flex; justify-content:space-between;
+    }
+    #scrubber {
+      width:100%; appearance:none; height:3px;
+      background:var(--border2); border-radius:2px;
+      outline:none; cursor:pointer;
+    }
+    #scrubber::-webkit-slider-thumb {
+      appearance:none; width:13px; height:13px;
+      border-radius:50%; background:var(--accent); cursor:pointer;
+    }
+
+    /* Color picker row in config */
+    .color-row {
+      margin-top:10px; padding:10px 12px;
+      background:rgba(255,255,255,.02);
+      border:1px solid var(--border2); border-radius:8px;
+    }
+    .color-row-title {
+      font-family:var(--mono); font-size:9px; color:var(--muted);
+      text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px;
+    }
+    .color-presets {
+      display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px;
+    }
+    .cpill {
+      padding:4px 9px; border-radius:12px;
+      font-family:var(--mono); font-size:9px; font-weight:600;
+      cursor:pointer; border:1.5px solid transparent;
+      transition:all .15s; user-select:none;
+    }
+    .cpill:hover { filter:brightness(1.2); }
+    .cpill.active { border-color:#fff; box-shadow:0 0 0 1px rgba(255,255,255,.3); }
+    .cpill-white  { background:#e8e8e8; color:#111; }
+    .cpill-yellow { background:#ffe135; color:#111; }
+    .cpill-orange { background:#ff8c00; color:#fff; }
+    .cpill-red    { background:#e83030; color:#fff; }
+    .cpill-green  { background:#35cc70; color:#111; }
+    .cpill-blue   { background:#3080ff; color:#fff; }
+    .cpill-cyan   { background:#00d4d4; color:#111; }
+    .cpill-custom { background:var(--border2); color:var(--text); }
+
+    .color-custom-row {
+      display:none; align-items:center; gap:8px; margin-top:6px;
+    }
+    .color-custom-row.show { display:flex; }
+    #colorPicker {
+      width:32px; height:28px; padding:0; border:none;
+      background:none; cursor:pointer; border-radius:4px; flex-shrink:0;
+    }
+    .color-hsv-info {
+      font-family:var(--mono); font-size:9px; color:var(--muted); flex:1;
+    }
+    .color-hsv-info b { color:var(--accent2); font-weight:500; }
+
+    /* Bottom bar */
+    .preview-bar {
+      padding:9px 16px; display:flex; align-items:center; gap:8px;
+      border-top:1px solid var(--border);
+    }
+    .coords {
+      flex:1; font-family:var(--mono); font-size:9px;
+      color:var(--muted); display:flex; align-items:center; gap:5px; flex-wrap:wrap;
+    }
+    .cv { color:var(--accent2); }
+    .btn-xs {
+      padding:6px 10px; border:1px solid var(--border2);
+      border-radius:6px; background:transparent;
+      color:var(--muted); font-family:var(--mono); font-size:9px;
+      cursor:pointer; transition:all .15s; white-space:nowrap;
+    }
+    .btn-xs:hover { color:var(--text); border-color:var(--muted); }
+  
+    /* ═══════════════════════════════════════════════
+       APP SHELL — sidebar layout
+    ═══════════════════════════════════════════════ */
+    body {
+      padding:0; align-items:stretch; flex-direction:row;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 210px;
+      flex-shrink: 0;
+      position: fixed;
+      top: 0; left: 0;
+      height: 100vh;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+      overflow-y: auto;
+    }
+
+    .sb-logo {
+      padding: 22px 20px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sb-logo-name {
+      font-family: var(--display);
+      font-size: 1.4rem;
+      letter-spacing: .05em;
+      line-height: 1;
+      color: var(--text);
+    }
+    .sb-logo-name em { color: var(--accent); font-style: normal; }
+    .sb-logo-sub {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--muted);
+      margin-top: 4px;
+      letter-spacing: .06em;
+    }
+
+    .sb-section-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      padding: 16px 20px 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 20px;
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      text-align: left;
+      transition: all .15s;
+      font-family: var(--sans);
+      font-size: .85rem;
+      font-weight: 500;
+      border-left: 2px solid transparent;
+    }
+    .nav-item:hover { color: var(--text); background: rgba(255,255,255,.03); }
+    .nav-item.active {
+      color: var(--accent);
+      background: rgba(255,92,53,.07);
+      border-left-color: var(--accent);
+    }
+    .nav-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+    .nav-label { flex: 1; }
+    .nav-badge {
+      font-family: var(--mono);
+      font-size: 8px;
+      padding: 2px 6px;
+      border-radius: 8px;
+      background: rgba(255,92,53,.15);
+      color: var(--accent);
+      letter-spacing: .04em;
+    }
+
+    .sb-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 10px 0;
+    }
+
+    .sb-footer {
+      margin-top: auto;
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+    }
+    .sb-footer a {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: .06em;
+    }
+    .sb-footer a:hover { color: var(--accent); }
+
+    /* Main content */
+    .main-content {
+      margin-left: 210px;
+      flex: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px 80px;
+    }
+
+    /* Tool panels */
+    .tool-panel { display: none; width: 100%; }
+    .tool-panel.active { display: flex; flex-direction: column; align-items: center; }
+
+    /* ── YouTube Tools ── */
+    .yt-layout {
+      width: 100%; max-width: 860px;
+      display: flex; flex-direction: column; gap: 20px;
+    }
+
+    .yt-header { text-align: center; margin-bottom: 8px; }
+    .yt-title {
+      font-family: var(--display);
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      line-height: .95; letter-spacing: .02em;
+    }
+    .yt-title em { color: #ff4444; font-style: normal; }
+    .yt-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+    .yt-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .yt-card-header {
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .yt-card-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .yt-card-icon.dl  { background: rgba(255,68,68,.1); border: 1px solid rgba(255,68,68,.2); }
+    .yt-card-icon.tr  { background: rgba(53,255,176,.07); border: 1px solid rgba(53,255,176,.15); }
+    .yt-card-title {
+      font-weight: 600; font-size: .9rem;
+    }
+    .yt-card-desc {
+      font-family: var(--mono); font-size: 10px;
+      color: var(--muted); margin-top: 2px;
+    }
+
+    .yt-body { padding: 20px 22px; }
+
+    .yt-url-row {
+      display: flex; gap: 8px; margin-bottom: 14px;
+    }
+    .yt-url-input {
+      flex: 1; padding: 11px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--mono); font-size: 12px;
+      outline: none; transition: border-color .15s;
+    }
+    .yt-url-input:focus { border-color: var(--accent); }
+    .yt-url-input::placeholder { color: var(--muted); }
+
+    .yt-options-row {
+      display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;
+    }
+    .yt-select {
+      padding: 9px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--mono); font-size: 11px;
+      outline: none; cursor: pointer;
+      transition: border-color .15s;
+    }
+    .yt-select:focus { border-color: var(--accent); }
+
+    /* YT buttons */
+    .yt-btn-dl {
+      flex: 1; min-width: 180px;
+      padding: 12px 18px;
+      background: #e03030;
+      border: none; border-radius: 8px;
+      color: #fff;
+      font-family: var(--sans); font-weight: 700;
+      font-size: .875rem; cursor: pointer;
+      transition: all .15s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .yt-btn-dl:hover:not(:disabled) { background: #f04040; transform: translateY(-1px); }
+    .yt-btn-dl:disabled { opacity: .4; cursor: not-allowed; }
+
+    .yt-btn-tr {
+      flex: 1; min-width: 200px;
+      padding: 12px 18px;
+      background: rgba(53,255,176,.12);
+      border: 1px solid rgba(53,255,176,.3);
+      border-radius: 8px;
+      color: var(--green);
+      font-family: var(--sans); font-weight: 700;
+      font-size: .875rem; cursor: pointer;
+      transition: all .15s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .yt-btn-tr:hover:not(:disabled) { background: rgba(53,255,176,.2); transform: translateY(-1px); }
+    .yt-btn-tr:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* YT progress */
+    .yt-prog { display: none; margin-top: 14px; }
+    .yt-prog-top { display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .yt-prog-label { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+    .yt-prog-pct   { font-family: var(--mono); font-size: 11px; font-weight: 600; }
+    .yt-track { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .yt-fill  { height: 100%; border-radius: 2px; width: 0%; transition: width .35s; }
+    .yt-fill.dl { background: linear-gradient(90deg, #e03030, #ff6b6b); }
+    .yt-fill.tr { background: linear-gradient(90deg, var(--green), #80ffd4); }
+    .yt-prog-msg { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 6px; }
+
+    /* YT result / error */
+    .yt-result { display: none; margin-top: 14px; }
+    .yt-result-dl {
+      padding: 14px 18px;
+      background: rgba(224,48,48,.06);
+      border: 1px solid rgba(224,48,48,.2);
+      border-radius: 10px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .yt-result-tr {
+      padding: 14px 18px;
+      background: rgba(53,255,176,.04);
+      border: 1px solid rgba(53,255,176,.2);
+      border-radius: 10px;
+    }
+    .yt-res-title { font-weight: 600; font-size: .85rem; margin-bottom: 3px; }
+    .yt-res-sub   { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+    .yt-dl-link {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 9px 18px;
+      background: #e03030; color: #fff;
+      border: none; border-radius: 7px;
+      font-family: var(--sans); font-weight: 700; font-size: .8rem;
+      cursor: pointer; text-decoration: none; transition: all .15s;
+      margin-left: auto; flex-shrink: 0;
+    }
+    .yt-dl-link:hover { background: #f04040; }
+
+    /* Transcript output */
+    .tr-toolbar {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 10px; flex-wrap: wrap;
+    }
+    .tr-info {
+      font-family: var(--mono); font-size: 9px; color: var(--muted); flex: 1;
+    }
+    .tr-info b { color: var(--accent2); }
+    .btn-copy {
+      padding: 6px 12px;
+      background: transparent;
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      color: var(--muted); font-family: var(--mono); font-size: 9px;
+      cursor: pointer; transition: all .15s;
+    }
+    .btn-copy:hover { color: var(--text); border-color: var(--muted); }
+    .btn-copy.copied { color: var(--green); border-color: var(--green); }
+    .tr-toggle-ts {
+      padding: 6px 12px;
+      background: transparent;
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      color: var(--muted); font-family: var(--mono); font-size: 9px;
+      cursor: pointer; transition: all .15s;
+    }
+    .tr-toggle-ts:hover { color: var(--text); }
+    .tr-toggle-ts.on  { color: var(--accent2); border-color: var(--accent2); }
+
+    .tr-text {
+      max-height: 280px; overflow-y: auto;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      font-family: var(--mono); font-size: 11px;
+      color: var(--text); line-height: 1.8;
+      white-space: pre-wrap;
+    }
+    .tr-text::-webkit-scrollbar { width: 4px; }
+    .tr-text::-webkit-scrollbar-track { background: var(--bg); }
+    .tr-text::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+    .yt-error {
+      display: none; margin-top: 12px;
+      padding: 10px 14px;
+      background: rgba(255,92,53,.07);
+      border: 1px solid rgba(255,92,53,.2);
+      border-radius: 8px;
+      font-family: var(--mono); font-size: 11px;
+      color: var(--accent); line-height: 1.6;
+    }
+
+    /* Mobile sidebar */
+    .sb-toggle {
+      display: none;
+      position: fixed; top: 12px; left: 12px; z-index: 200;
+      width: 36px; height: 36px; border-radius: 8px;
+      background: var(--panel); border: 1px solid var(--border);
+      cursor: pointer; font-size: 16px;
+      align-items: center; justify-content: center;
+      color: var(--text);
+    }
+    @media (max-width: 860px) {
+      .sidebar { transform: translateX(-100%); transition: transform .25s; }
+      .sidebar.open { transform: translateX(0); }
+      .main-content { margin-left: 0; padding-top: 60px; }
+      .sb-toggle { display: flex; }
+    }
+
+    /* ═══════════════════════════════════════════════
+       TEXT-TO-SPEECH — Microsoft Edge TTS
+    ═══════════════════════════════════════════════ */
+    .tts-layout {
+      width:100%; max-width:760px;
+      display:flex; flex-direction:column; gap:20px;
+    }
+    .tts-header { text-align:center; margin-bottom:4px; }
+    .tts-title  {
+      font-family:var(--display);
+      font-size:clamp(2rem,4vw,3.2rem);
+      line-height:.95; letter-spacing:.02em;
+    }
+    .tts-title em { color:#a78bfa; font-style:normal; }
+    .tts-sub { font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:6px; }
+
+    .tts-card {
+      background:var(--panel); border:1px solid var(--border);
+      border-radius:16px; overflow:hidden;
+    }
+
+    /* Voice selector bar */
+    .tts-voice-bar {
+      padding:16px 22px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    }
+    .tts-voice-bar-label {
+      font-family:var(--mono); font-size:9px; color:var(--muted);
+      text-transform:uppercase; letter-spacing:.08em; white-space:nowrap;
+    }
+    .tts-voice-pills { display:flex; gap:6px; flex-wrap:wrap; flex:1; }
+    .tts-vpill {
+      padding:5px 11px; border-radius:20px;
+      font-family:var(--mono); font-size:10px; font-weight:500;
+      cursor:pointer; border:1.5px solid var(--border2);
+      background:transparent; color:var(--muted);
+      transition:all .15s; white-space:nowrap;
+    }
+    .tts-vpill:hover { color:var(--text); border-color:var(--muted); }
+    .tts-vpill.active {
+      background:rgba(167,139,250,.12);
+      border-color:#a78bfa; color:#c4b5fd;
+    }
+    .tts-vpill .vg { font-size:8px; opacity:.7; margin-left:3px; }
+
+    /* Lang filter tabs */
+    .tts-lang-tabs { display:flex; gap:6px; margin-right:8px; }
+    .tts-ltab {
+      padding:4px 10px; border-radius:6px;
+      font-family:var(--mono); font-size:9px;
+      cursor:pointer; border:1px solid var(--border2);
+      background:transparent; color:var(--muted);
+      transition:all .15s;
+    }
+    .tts-ltab.active { background:rgba(167,139,250,.12); border-color:#a78bfa; color:#c4b5fd; }
+
+    /* Selected voice info badge */
+    .tts-voice-info {
+      padding:8px 22px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; gap:10px;
+    }
+    .tts-voice-avatar {
+      width:36px; height:36px; border-radius:10px;
+      background:rgba(167,139,250,.12);
+      border:1px solid rgba(167,139,250,.2);
+      display:flex; align-items:center; justify-content:center;
+      font-size:17px; flex-shrink:0;
+    }
+    .tts-voice-name {
+      font-weight:700; font-size:.9rem;
+      background:linear-gradient(90deg,#a78bfa,#c4b5fd);
+      -background-clip:text; -webkit-text-fill-color:transparent;
+    }
+    .tts-voice-desc { font-family:var(--mono); font-size:10px; color:var(--muted); }
+    .tts-free-badge {
+      margin-left:auto; padding:3px 9px;
+      background:rgba(53,255,176,.08); border:1px solid rgba(53,255,176,.2);
+      border-radius:8px; font-family:var(--mono); font-size:9px;
+      color:var(--green); letter-spacing:.06em;
+    }
+
+    /* Body */
+    .tts-body { padding:20px 22px; display:flex; flex-direction:column; gap:16px; }
+
+    /* Textarea */
+    .tts-textarea-wrap { position:relative; }
+    .tts-textarea {
+      width:100%; min-height:130px; padding:13px 14px;
+      background:var(--bg); border:1px solid var(--border2);
+      border-radius:10px; color:var(--text);
+      font-family:var(--sans); font-size:.875rem; line-height:1.6;
+      resize:vertical; outline:none; transition:border-color .15s;
+    }
+    .tts-textarea:focus { border-color:#a78bfa; }
+    .tts-textarea::placeholder { color:var(--muted); }
+    .tts-char-count {
+      position:absolute; bottom:10px; right:12px;
+      font-family:var(--mono); font-size:9px; color:var(--muted);
+      pointer-events:none;
+    }
+    .tts-char-count.warn { color:var(--accent2); }
+    .tts-char-count.over { color:var(--accent); }
+
+    /* Prosody sliders */
+    .tts-prosody { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+    @media(max-width:600px){ .tts-prosody { grid-template-columns:1fr; } }
+    .tts-sl-group { display:flex; flex-direction:column; gap:5px; }
+    .tts-sl-label {
+      display:flex; justify-content:space-between;
+      font-family:var(--mono); font-size:9px; color:var(--muted);
+      text-transform:uppercase; letter-spacing:.06em;
+    }
+    .tts-sl-val { color:#a78bfa; font-weight:600; }
+    .tts-slider {
+      width:100%; appearance:none; height:3px;
+      background:var(--border2); border-radius:2px; outline:none; cursor:pointer;
+    }
+    .tts-slider::-webkit-slider-thumb {
+      appearance:none; width:13px; height:13px;
+      border-radius:50%; background:#a78bfa; cursor:pointer;
+    }
+    .tts-sl-desc { font-family:var(--mono); font-size:9px; color:var(--border2); }
+
+    /* Generate button */
+    .tts-btn-gen {
+      width:100%; padding:14px;
+      background:linear-gradient(135deg,#7c3aed,#a78bfa);
+      border:none; border-radius:10px;
+      color:#fff; font-family:var(--sans); font-weight:700;
+      font-size:.9rem; cursor:pointer; transition:all .18s;
+      display:flex; align-items:center; justify-content:center; gap:9px;
+    }
+    .tts-btn-gen:hover:not(:disabled) {
+      background:linear-gradient(135deg,#6d28d9,#9f7aea);
+      transform:translateY(-1px); box-shadow:0 4px 20px rgba(124,58,237,.35);
+    }
+    .tts-btn-gen:disabled { opacity:.35; cursor:not-allowed; transform:none; box-shadow:none; }
+
+    /* Progress */
+    .tts-prog { display:none; }
+    .tts-prog-track { height:3px; background:var(--border); border-radius:2px; overflow:hidden; margin-bottom:7px; }
+    .tts-prog-fill  { height:100%; background:linear-gradient(90deg,#7c3aed,#a78bfa); border-radius:2px; width:0%; transition:width .35s; }
+    .tts-prog-msg   { font-family:var(--mono); font-size:10px; color:var(--muted); }
+
+    /* Error */
+    .tts-error {
+      display:none; padding:11px 14px;
+      background:rgba(255,92,53,.07); border:1px solid rgba(255,92,53,.2);
+      border-radius:8px; font-family:var(--mono); font-size:11px;
+      color:var(--accent); line-height:1.6;
+    }
+
+    /* Result */
+    .tts-result { display:none; }
+    .tts-result-box {
+      padding:18px 20px;
+      background:rgba(167,139,250,.05); border:1px solid rgba(167,139,250,.2);
+      border-radius:12px; display:flex; flex-direction:column; gap:12px;
+    }
+    .tts-result-title { font-weight:600; font-size:.875rem; color:#c4b5fd; }
+    audio {
+      width:100%; height:36px;
+      filter:invert(1) hue-rotate(200deg) saturate(0.4);
+      border-radius:6px;
+    }
+    .tts-result-actions { display:flex; gap:10px; }
+    .tts-btn-dl-audio {
+      flex:1; padding:10px 16px;
+      background:rgba(167,139,250,.15); border:1px solid rgba(167,139,250,.3);
+      border-radius:8px; color:#c4b5fd;
+      font-family:var(--sans); font-weight:600; font-size:.85rem;
+      text-decoration:none; text-align:center; transition:all .15s;
+    }
+    .tts-btn-dl-audio:hover { background:rgba(167,139,250,.25); }
+    .tts-btn-new {
+      padding:10px 16px;
+      background:transparent; border:1px solid var(--border2);
+      border-radius:8px; color:var(--muted);
+      font-family:var(--sans); font-weight:500; font-size:.85rem;
+      cursor:pointer; transition:all .15s;
+    }
+    .tts-btn-new:hover { color:var(--text); border-color:var(--muted); }
+
+    /* Const */
+    :root { --tts-max: 5000; }
+
+
+</style>
+</head>
+<body>
+
+<div class="sb-toggle" id="sbToggle" onclick="toggleSidebar()">☰</div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-name">SUBTITLE<br/><em>REMOVER</em></div>
+    <div class="sb-logo-sub">by @Stelica.21</div>
+  </div>
+
+  <div class="sb-section-label">Video Tools</div>
+
+  <button class="nav-item active" id="nav-caption" onclick="showTool('caption',this)">
+    <span class="nav-icon">🎬</span>
+    <span class="nav-label">Caption Remover</span>
+    <span class="nav-badge">AI</span>
+  </button>
+
+  <div class="sb-divider"></div>
+  <div class="sb-section-label">YouTube</div>
+
+  <button class="nav-item" id="nav-yt-dl" onclick="showTool('yt-dl',this)">
+    <span class="nav-icon">⬇</span>
+    <span class="nav-label">YT Downloader</span>
+  </button>
+
+  <button class="nav-item" id="nav-yt-tr" onclick="showTool('yt-tr',this)">
+    <span class="nav-icon">📝</span>
+    <span class="nav-label">YT Transcript</span>
+  </button>
+
+  <div class="sb-divider"></div>
+  <div class="sb-section-label">AI Tools</div>
+
+  <button class="nav-item" id="nav-tts" onclick="showTool('tts',this)">
+    <span class="nav-icon">🎤</span>
+    <span class="nav-label">Text to Speech</span>
+    <span class="nav-badge">EL</span>
+  </button>
+
+  <div class="sb-footer">
+    <a href="https://www.instagram.com/stelica.21" target="_blank">instagram @stelica.21</a>
+  </div>
+</nav>
+
+<div class="main-content">
+
+
+
+
+  <!-- ═══════ CAPTION REMOVER ═══════ -->
+  <div id="tool-caption" class="tool-panel active">
+
+<header>
+  <div class="eyebrow">Caption Remover</div>
+  <h1>SUBTITLE <em>REMOVER</em></h1>
+  <p class="tagline">TIKTOK - YOUTUBE SHORTS</p>
+</header>
+
+<div class="layout">
+
+  <!-- ═══════════ LEFT — Upload Card ═══════════ -->
+  <div class="col-left">
+  <div class="card">
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('upload',this)">Upload</button>
+      <button class="tab"        onclick="switchTab('log',this)">Log</button>
+    </div>
+
+    <!-- Tab: Upload -->
+    <div id="tab-upload" class="tab-panel active">
+
+      <div id="dropzone" onclick="document.getElementById('fileInput').click()">
+        <span class="dz-icon">🎬</span>
+        <div class="dz-title">Trage videoclipul sau apasă să selectezi</div>
+        <div class="dz-sub">MP4 · MKV · MOV · AVI · WEBM · FLV · 3GP · Max 3 GB</div>
+        <input type="file" id="fileInput" accept="video/*,.mkv,.avi"/>
+      </div>
+
+      <div class="config-toggle" id="cfgToggle" onclick="toggleConfig()">
+        <span>⚙ Setări avansate inpainting | Deschide pentru selectarea culorii subtirarii</span>
+        <span class="arr">▾</span>
+      </div>
+      <div class="config-panel" id="cfgPanel">
+        <div class="config-grid">
+          <div class="cfg-field"><label>Zone Top %</label>
+            <input type="number" id="cfg-top"    value="72"  min="0" max="100" oninput="syncCfgToBox()"/></div>
+          <div class="cfg-field"><label>Zone Bot %</label>
+            <input type="number" id="cfg-bot"    value="92"  min="0" max="100" oninput="syncCfgToBox()"/></div>
+          <div class="cfg-field"><label>Zone Left %</label>
+            <input type="number" id="cfg-left"   value="0"   min="0" max="100" oninput="syncCfgToBox()"/></div>
+          <div class="cfg-field"><label>Zone Right %</label>
+            <input type="number" id="cfg-right"  value="100" min="0" max="100" oninput="syncCfgToBox()"/></div>
+          <div class="cfg-field"><label>White Threshold</label>
+            <input type="number" id="cfg-white"  value="200" min="100" max="255"/></div>
+          <div class="cfg-field"><label>Min Blob Area</label>
+            <input type="number" id="cfg-blob"   value="400" min="50" max="5000"/></div>
+          <div class="cfg-field"><label>Inpaint Radius</label>
+            <input type="number" id="cfg-radius" value="6"   min="1" max="20"/></div>
+          <div class="cfg-field"><label>Dilate Iters</label>
+            <input type="number" id="cfg-dilate" value="2"   min="1" max="5"/></div>
+        </div>
+        <div class="cfg-hint">
+          ◆ Zone Top/Bot/Left/Right se sincronizează cu chenarul din preview<br/>
+          ◆ Trage chenarul direct pe video pentru a seta zona vizual
+        </div>
+
+        <!-- ── Color picker ── -->
+        <div class="color-row">
+          <div class="color-row-title">◈ Culoarea textului de șters</div>
+          <div class="color-presets">
+            <div class="cpill cpill-white  active" data-color="white"  onclick="setColor('white',  this)">Alb</div>
+            <div class="cpill cpill-yellow"         data-color="yellow" onclick="setColor('yellow', this)">Galben</div>
+            <div class="cpill cpill-orange"         data-color="orange" onclick="setColor('orange', this)">Portocaliu</div>
+            <div class="cpill cpill-red"            data-color="red"    onclick="setColor('red',    this)">Roșu</div>
+            <div class="cpill cpill-green"          data-color="green"  onclick="setColor('green',  this)">Verde</div>
+            <div class="cpill cpill-blue"           data-color="blue"   onclick="setColor('blue',   this)">Albastru</div>
+            <div class="cpill cpill-cyan"           data-color="cyan"   onclick="setColor('cyan',   this)">Cyan</div>
+            <div class="cpill cpill-custom"         data-color="custom" onclick="setColor('custom', this)">Custom…</div>
+          </div>
+          <div class="color-custom-row" id="customColorRow">
+            <input type="color" id="colorPicker" value="#ffff00" oninput="onCustomColor(this.value)"/>
+            <div class="color-hsv-info" id="hsvInfo">HSV: H=<b id="hI">30</b> ±<b id="hrI">15</b> · S≥<b id="sI">100</b> · V≥<b id="vI">120</b></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="fileInfo">
+        <div class="fi-icon">🎞️</div>
+        <div style="flex:1;min-width:0">
+          <div class="fi-name" id="fi-name">—</div>
+          <div class="fi-meta" id="fi-meta">—</div>
+        </div>
+      </div>
+
+      <div id="progressBox">
+        <div class="prog-header">
+          <span class="prog-label" id="prog-label">Procesare...</span>
+          <span class="prog-pct"   id="prog-pct">0%</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+        <div class="prog-status" id="prog-status"></div>
+      </div>
+
+      <div id="errorBox"></div>
+
+      <div id="resultBox">
+        <div class="res-icon">✅</div>
+        <div class="res-title">Subtitrari eliminate cu succes!</div>
+        <div class="res-sub" id="res-sub">Gata de descărcat.</div>
+        <a id="dlLink" class="btn-dl" href="#" download>⬇ Descarcă videoclipul curat</a>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="btnProcess" disabled onclick="startJob()">🗑 Șterge Subtitrarile</button>
+        <button class="btn btn-ghost" onclick="resetAll()">Resetează</button>
+      </div>
+
+      <div class="chips">
+        <div class="chip">NODE.JS</div>
+        <div class="chip">Selecție vizuală</div>
+        <div class="chip">OpenCV 4</div>
+        <div class="chip">JS</div>
+        <div class="chip"><a href="https://www.instagram.com/stelica.21">@Stelica.21</a></div>
+      </div>
+    </div>
+
+    <!-- Tab: Log -->
+    <div id="tab-log" class="tab-panel">
+      <div id="logBox">
+        <div class="log-entry"><span class="log-time">--:--:--</span><span>Nicio activitate.</span></div>
+      </div>
+      <div class="actions" style="margin-top:0">
+        <button class="btn btn-ghost" onclick="clearLog()">Șterge log</button>
+      </div>
+    </div>
+
+  </div><!-- /card -->
+  </div><!-- /col-left -->
+
+  <!-- ═══════════ RIGHT — Preview ═══════════ -->
+  <div class="col-right">
+  <div class="preview-card">
+
+    <div class="preview-header">
+      <span class="preview-title">◈ Preview &amp; Selecție Zonă</span>
+      <span class="preview-hint">drag + <b>resize</b> chenar</span>
+    </div>
+
+    <div class="video-wrapper" id="vWrapper">
+
+      <div id="videoPlaceholder">
+        <div class="ph-icon">🎞</div>
+        <div class="ph-text">Încarcă un videoclip<br/>pentru a selecta zona</div>
+      </div>
+
+      <video id="videoEl" preload="metadata" muted playsinline style="display:none"></video>
+
+      <div id="selOverlay">
+        <!-- Zona activă (exact pe conținutul video, fără bare negre) -->
+        <div id="videoArea"></div>
+
+        <!-- Dim masks -->
+        <div id="mTop"   class="mask"></div>
+        <div id="mBot"   class="mask"></div>
+        <div id="mLeft"  class="mask"></div>
+        <div id="mRight" class="mask"></div>
+
+        <!-- Selection box -->
+        <div id="selBox">
+          <div class="h nw" data-d="nw"></div>
+          <div class="h n"  data-d="n"></div>
+          <div class="h ne" data-d="ne"></div>
+          <div class="h e"  data-d="e"></div>
+          <div class="h se" data-d="se"></div>
+          <div class="h s"  data-d="s"></div>
+          <div class="h sw" data-d="sw"></div>
+          <div class="h w"  data-d="w"></div>
+          <div id="selLabel">72% → 92%</div>
+        </div>
+      </div>
+    </div><!-- /video-wrapper -->
+
+    <!-- Scrubber + Play -->
+    <div class="scrub-row" id="scrubRow" style="display:none">
+      <div class="scrub-top">
+        <button id="btnPlay" onclick="togglePlay()" title="Play / Pause">▶</button>
+        <div class="scrub-slider-wrap">
+          <div class="scrub-label">
+            <span>◈ Frame</span>
+            <span id="timeLbl">0:00</span>
+          </div>
+          <input type="range" id="scrubber" min="0" max="100" step="0.1" value="0"
+                 oninput="scrubTo(this.value)"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom bar -->
+    <div class="preview-bar">
+      <div class="coords">
+        X <span class="cv" id="dL">0</span>–<span class="cv" id="dR">100</span>%
+        &nbsp;·&nbsp;
+        Y <span class="cv" id="dT">72</span>–<span class="cv" id="dB">92</span>%
+      </div>
+      <button class="btn-xs" onclick="resetZone()">↺ Reset</button>
+      <button class="btn-xs" id="btnAuto" onclick="autoDetect()">⚡ Auto</button>
+    </div>
+
+  </div><!-- /preview-card -->
+  </div><!-- /col-right -->
+
+</div><!-- /layout -->
+
+  </div><!-- /tool-caption -->
+
+
+  <!-- ═══════ YOUTUBE DOWNLOADER ═══════ -->
+  <div id="tool-yt-dl" class="tool-panel">
+    <div class="yt-layout">
+      <div class="yt-header">
+        <div class="yt-title">YOUTUBE <em>DOWNLOADER</em></div>
+        <p class="yt-sub">// descarcă orice video sau Shorts în calitate maximă</p>
+      </div>
+
+      <div class="yt-card">
+        <div class="yt-card-header">
+          <div class="yt-card-icon dl">▶</div>
+          <div>
+            <div class="yt-card-title">Descarcă Video YouTube</div>
+            <div class="yt-card-desc">Suportă: Videos normale · Shorts · Playlisturi (primul video)</div>
+          </div>
+        </div>
+        <div class="yt-body">
+          <div class="yt-url-row">
+            <input class="yt-url-input" id="ytDlUrl" type="url"
+                   placeholder="Lipește link-ul de YouTube (Video sau Shorts) aici..."/>
+          </div>
+          <div class="yt-options-row">
+            <select class="yt-select" id="ytQuality">
+              <option value="1080">🎬 Calitate: 1080p (Full HD)</option>
+              <option value="720">📺 Calitate: 720p (HD)</option>
+              <option value="480">📱 Calitate: 480p</option>
+              <option value="360">🔹 Calitate: 360p</option>
+              <option value="audio">🎵 Audio only (MP3)</option>
+            </select>
+            <button class="yt-btn-dl" id="btnYtDl" onclick="startYtDownload()">
+              ⬇ Descarcă Video YouTube
+            </button>
+          </div>
+
+          <div class="yt-prog" id="ytDlProg">
+            <div class="yt-prog-top">
+              <span class="yt-prog-label" id="ytDlProgLabel">Descărcând...</span>
+              <span class="yt-prog-pct" id="ytDlProgPct" style="color:#e03030">0%</span>
+            </div>
+            <div class="yt-track"><div class="yt-fill dl" id="ytDlFill"></div></div>
+            <div class="yt-prog-msg" id="ytDlProgMsg"></div>
+          </div>
+
+          <div class="yt-error" id="ytDlError"></div>
+
+          <div class="yt-result" id="ytDlResult">
+            <div class="yt-result-dl">
+              <div>
+                <div class="yt-res-title">✅ Video descărcat cu succes!</div>
+                <div class="yt-res-sub" id="ytDlResName">—</div>
+              </div>
+              <a class="yt-dl-link" id="ytDlLink" href="#" download>⬇ Descarcă</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ YOUTUBE TRANSCRIPT ═══════ -->
+  <div id="tool-yt-tr" class="tool-panel">
+    <div class="yt-layout">
+      <div class="yt-header">
+        <div class="yt-title">YOUTUBE <em>TRANSCRIPT</em></div>
+        <p class="yt-sub">// extrage și traduce transcrierea oricărui video</p>
+      </div>
+
+      <div class="yt-card">
+        <div class="yt-card-header">
+          <div class="yt-card-icon tr">📝</div>
+          <div>
+            <div class="yt-card-title">Extrage &amp; Traduce Transcriptul</div>
+            <div class="yt-card-desc">Extrage subtitrările automate YouTube și traduce opțional în altă limbă</div>
+          </div>
+        </div>
+        <div class="yt-body">
+          <div class="yt-url-row">
+            <input class="yt-url-input" id="ytTrUrl" type="url"
+                   placeholder="Lipește link-ul de YouTube (Video sau Shorts) aici..."/>
+          </div>
+          <div class="yt-options-row">
+            <select class="yt-select" id="ytTrLang">
+              <option value="none">🌐 Fără traducere (original)</option>
+              <option value="ro">🇷🇴 Traduce în Română</option>
+              <option value="en">🇬🇧 Traduce în Engleză</option>
+              <option value="es">🇪🇸 Traduce în Spaniolă</option>
+              <option value="fr">🇫🇷 Traduce în Franceză</option>
+              <option value="de">🇩🇪 Traduce în Germană</option>
+              <option value="it">🇮🇹 Traduce în Italiană</option>
+              <option value="pt">🇵🇹 Traduce în Portugheză</option>
+              <option value="ru">🇷🇺 Traduce în Rusă</option>
+              <option value="ja">🇯🇵 Traduce în Japoneză</option>
+              <option value="ko">🇰🇷 Traduce în Coreeană</option>
+            </select>
+            <button class="yt-btn-tr" id="btnYtTr" onclick="startYtTranscript()">
+              📝 Extrage &amp; Tradu Transcriptul
+            </button>
+          </div>
+
+          <div class="yt-prog" id="ytTrProg">
+            <div class="yt-prog-top">
+              <span class="yt-prog-label" id="ytTrProgLabel">Se extrage...</span>
+              <span class="yt-prog-pct" id="ytTrProgPct" style="color:var(--green)">0%</span>
+            </div>
+            <div class="yt-track"><div class="yt-fill tr" id="ytTrFill"></div></div>
+            <div class="yt-prog-msg" id="ytTrProgMsg"></div>
+          </div>
+
+          <div class="yt-error" id="ytTrError"></div>
+
+          <div class="yt-result" id="ytTrResult">
+            <div class="yt-result-tr">
+              <div class="tr-toolbar">
+                <div class="tr-info" id="trInfo">—</div>
+                <button class="tr-toggle-ts" id="btnTs" onclick="toggleTimestamps()">🕐 Timestamps</button>
+                <button class="btn-copy" id="btnCopy" onclick="copyTranscript()">📋 Copiază</button>
+                <button class="btn-copy" onclick="downloadTranscript()">💾 .txt</button>
+              </div>
+              <div class="tr-text" id="trText">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════ TEXT TO SPEECH ═══════ -->
+  <div id="tool-tts" class="tool-panel">
+    <div class="tts-layout">
+
+      <div class="tts-header">
+        <div class="tts-title">TEXT TO <em>SPEECH</em></div>
+        <p class="tts-sub">// Microsoft Edge TTS · voci neurale · 100% gratuit · fără limite</p>
+      </div>
+
+      <div class="tts-card">
+
+        <!-- Lang filter + Voice pills -->
+        <div class="tts-voice-bar">
+          <div class="tts-lang-tabs">
+            <button class="tts-ltab active" onclick="filterLang('ALL',this)">ALL</button>
+            <button class="tts-ltab"        onclick="filterLang('EN', this)">EN</button>
+            <button class="tts-ltab"        onclick="filterLang('RO', this)">RO</button>
+          </div>
+          <span class="tts-voice-bar-label">Voce:</span>
+          <div class="tts-voice-pills" id="ttsPills"><!-- populated by JS --></div>
+        </div>
+
+        <!-- Selected voice info -->
+        <div class="tts-voice-info">
+          <div class="tts-voice-avatar" id="ttsVoiceAvatar">🎙</div>
+          <div>
+            <div class="tts-voice-name" id="ttsVoiceName">Guy</div>
+            <div class="tts-voice-desc" id="ttsVoiceDesc">Natural · Friendly · Versatil</div>
+          </div>
+          <div class="tts-free-badge">✓ GRATUIT</div>
+        </div>
+
+        <div class="tts-body">
+
+          <!-- Textarea -->
+          <div class="tts-textarea-wrap">
+            <textarea class="tts-textarea" id="ttsText"
+              placeholder="Scrie sau lipește textul pe care vrei să-l auzi...&#10;&#10;Funcționează cu orice limbă — detectare automată."
+              oninput="onTtsInput()" maxlength="5000"></textarea>
+            <span class="tts-char-count" id="ttsCharCount">0 / 5000</span>
+          </div>
+
+          <!-- Prosody controls -->
+          <div class="tts-prosody">
+            <div class="tts-sl-group">
+              <div class="tts-sl-label">
+                <span>Viteză</span>
+                <span class="tts-sl-val" id="valRate">0%</span>
+              </div>
+              <input class="tts-slider" type="range" id="slRate"
+                     min="-50" max="50" step="5" value="0"
+                     oninput="document.getElementById('valRate').textContent=this.value+'%'"/>
+              <div class="tts-sl-desc">-50% mai lent · +50% mai rapid</div>
+            </div>
+            <div class="tts-sl-group">
+              <div class="tts-sl-label">
+                <span>Tonalitate</span>
+                <span class="tts-sl-val" id="valPitch">0Hz</span>
+              </div>
+              <input class="tts-slider" type="range" id="slPitch"
+                     min="-20" max="20" step="2" value="0"
+                     oninput="document.getElementById('valPitch').textContent=this.value+'Hz'"/>
+              <div class="tts-sl-desc">-20Hz mai jos · +20Hz mai înalt</div>
+            </div>
+            <div class="tts-sl-group">
+              <div class="tts-sl-label">
+                <span>Volum</span>
+                <span class="tts-sl-val" id="valVolume">0%</span>
+              </div>
+              <input class="tts-slider" type="range" id="slVolume"
+                     min="-30" max="30" step="5" value="0"
+                     oninput="document.getElementById('valVolume').textContent=this.value+'%'"/>
+              <div class="tts-sl-desc">-30% mai silențios · +30% mai tare</div>
+            </div>
+          </div>
+
+          <!-- Generate button -->
+          <button class="tts-btn-gen" id="btnTtsGen" onclick="generateTts()" disabled>
+            <span id="btnTtsIcon">🎤</span> Generează Audio
+          </button>
+
+          <!-- Progress -->
+          <div class="tts-prog" id="ttsProgBox">
+            <div class="tts-prog-track"><div class="tts-prog-fill" id="ttsProgFill"></div></div>
+            <div class="tts-prog-msg" id="ttsProgMsg">Se generează...</div>
+          </div>
+
+          <!-- Error -->
+          <div class="tts-error" id="ttsError"></div>
+
+          <!-- Result -->
+          <div class="tts-result" id="ttsResult">
+            <div class="tts-result-box">
+              <div class="tts-result-title">🎧 Audio generat</div>
+              <audio id="ttsAudio" controls></audio>
+              <div class="tts-result-actions">
+                <a class="tts-btn-dl-audio" id="ttsDlLink" href="#" download="speech.mp3">⬇ Descarcă MP3</a>
+                <button class="tts-btn-new" onclick="resetTts()">↺ Audio nou</button>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /tts-body -->
+      </div><!-- /tts-card -->
+
+    </div><!-- /tts-layout -->
+  </div><!-- /tool-tts -->
+
+</div><!-- /main-content -->
+
+<script>
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let selFile = null, jobId = null, evtSrc = null;
+
+// Selection in overlay pixels
+let S = { x1:0, y1:0, x2:0, y2:0 };
+let drag = null;
+
+// ═══════════════════════════════════════════════════
+// FILE
+// ═══════════════════════════════════════════════════
+const dz = document.getElementById('dropzone');
+dz.addEventListener('dragover',  e=>{e.preventDefault();dz.classList.add('over');});
+dz.addEventListener('dragleave', ()=>dz.classList.remove('over'));
+dz.addEventListener('drop', e=>{e.preventDefault();dz.classList.remove('over');if(e.dataTransfer.files[0])onFile(e.dataTransfer.files[0]);});
+document.getElementById('fileInput').addEventListener('change',e=>{if(e.target.files[0])onFile(e.target.files[0]);});
+
+function onFile(f){
+  selFile = f;
+  document.getElementById('fi-name').textContent = f.name;
+  document.getElementById('fi-meta').textContent = fmtBytes(f.size);
+  document.getElementById('fileInfo').style.display = 'flex';
+  document.getElementById('btnProcess').disabled = false;
+  hide('resultBox');hide('errorBox');hide('progressBox');
+  loadPreview(f);
+}
+
+// ═══════════════════════════════════════════════════
+// PREVIEW
+// ═══════════════════════════════════════════════════
+const vid = document.getElementById('videoEl');
+const ov  = document.getElementById('selOverlay');
+const scr = document.getElementById('scrubber');
+
+function loadPreview(f){
+  vid.src = URL.createObjectURL(f);
+  vid.style.display = 'block';
+  document.getElementById('videoPlaceholder').style.display = 'none';
+  document.getElementById('scrubRow').style.display = 'block';
+  vid.addEventListener('loadedmetadata', ()=>{
+    scr.max = vid.duration;
+    document.getElementById('timeLbl').textContent = fmtTime(vid.duration);
+    requestAnimationFrame(()=>{ ov.style.display='block'; initBoxFromCfg(); });
+  },{once:true});
+}
+
+function scrubTo(v){
+  vid.currentTime = parseFloat(v);
+  document.getElementById('timeLbl').textContent = fmtTime(parseFloat(v));
+}
+vid.addEventListener('timeupdate',()=>{
+  scr.value = vid.currentTime;
+  document.getElementById('timeLbl').textContent = fmtTime(vid.currentTime);
+});
+vid.addEventListener('play',  ()=>{ document.getElementById('btnPlay').textContent='⏸'; });
+vid.addEventListener('pause', ()=>{ document.getElementById('btnPlay').textContent='▶'; });
+vid.addEventListener('ended', ()=>{ document.getElementById('btnPlay').textContent='▶'; });
+
+function togglePlay(){
+  if(vid.paused) vid.play(); else vid.pause();
+}
+
+// ═══════════════════════════════════════════════════
+// BOX GEOMETRY
+// ═══════════════════════════════════════════════════
+function videoRect(){
+  // Step 1: unde se află elementul <video> față de overlay (în pixeli)
+  const vr = vid.getBoundingClientRect();
+  const or = ov.getBoundingClientRect();
+  const elLeft = vr.left - or.left;
+  const elTop  = vr.top  - or.top;
+  const elW    = vr.width;
+  const elH    = vr.height;
+
+  // Step 2: unde se află conținutul real (object-fit:contain) în interiorul elementului
+  // → dacă raportul e diferit, apar bare negre în element
+  const nw = vid.videoWidth  || 1080;
+  const nh = vid.videoHeight || 1920;
+  const aspNat = nw / nh;
+  const aspEl  = elW / elH;
+
+  let cw, ch, cx, cy;
+  if (aspNat < aspEl) {
+    // Portrait video în container mai lat → bare negre stânga/dreapta (pillarbox)
+    ch = elH;  cw = ch * aspNat;
+    cy = elTop; cx = elLeft + (elW - cw) / 2;
+  } else {
+    // Landscape video în container mai înalt → bare negre sus/jos (letterbox)
+    cw = elW; ch = cw / aspNat;
+    cx = elLeft; cy = elTop + (elH - ch) / 2;
+  }
+
+  return { w: cw, h: ch, ox: cx, oy: cy };
+}
+
+function initBoxFromCfg(){
+  const {w,h,ox,oy} = videoRect();
+
+  // Poziționează zona activă exact pe conținutul video (fără bare negre)
+  const va = document.getElementById('videoArea');
+  va.style.cssText = `left:${ox}px;top:${oy}px;width:${w}px;height:${h}px;`;
+
+  const t  = +document.getElementById('cfg-top').value   /100;
+  const b  = +document.getElementById('cfg-bot').value   /100;
+  const l  = +document.getElementById('cfg-left').value  /100;
+  const r  = +document.getElementById('cfg-right').value /100;
+  S = { x1: ox+l*w, y1: oy+t*h, x2: ox+r*w, y2: oy+b*h };
+  renderBox();
+}
+
+function renderBox(){
+  const box = document.getElementById('selBox');
+  const {w,h,ox,oy} = videoRect();
+
+  const L = Math.min(S.x1,S.x2), R = Math.max(S.x1,S.x2);
+  const T = Math.min(S.y1,S.y2), B = Math.max(S.y1,S.y2);
+  const bw = R-L, bh = B-T;
+
+  box.style.cssText = `left:${L}px;top:${T}px;width:${bw}px;height:${bh}px;`;
+
+  // Masks
+  const ow = ov.offsetWidth, oh = ov.offsetHeight;
+  mask('mTop',  0,   0,  ow,  T);
+  mask('mBot',  0,   B,  ow,  oh-B);
+  mask('mLeft', 0,   T,  L,   bh);
+  mask('mRight',R,   T,  ow-R,bh);
+
+  // % values
+  const clp = v=>Math.max(0,Math.min(100,Math.round(v)));
+  const tP = clp((T-oy)/h*100), bP = clp((B-oy)/h*100);
+  const lP = clp((L-ox)/w*100), rP = clp((R-ox)/w*100);
+
+  document.getElementById('cfg-top').value   = tP;
+  document.getElementById('cfg-bot').value   = bP;
+  document.getElementById('cfg-left').value  = lP;
+  document.getElementById('cfg-right').value = rP;
+
+  document.getElementById('dT').textContent  = tP;
+  document.getElementById('dB').textContent  = bP;
+  document.getElementById('dL').textContent  = lP;
+  document.getElementById('dR').textContent  = rP;
+
+  document.getElementById('selLabel').textContent = `Y ${tP}%→${bP}%`;
+}
+
+function mask(id,x,y,w,h){
+  const el=document.getElementById(id);
+  el.style.cssText=`left:${x}px;top:${y}px;width:${Math.max(0,w)}px;height:${Math.max(0,h)}px;`;
+}
+
+window.addEventListener('resize',()=>{ if(vid.style.display!=='none') requestAnimationFrame(initBoxFromCfg); });
+
+// ═══════════════════════════════════════════════════
+// DRAG & RESIZE
+// ═══════════════════════════════════════════════════
+const selBox = document.getElementById('selBox');
+
+// Move (click on box center, not on handle)
+selBox.addEventListener('mousedown', e=>{
+  if(e.target.classList.contains('h')) return;
+  e.preventDefault();
+  drag={mode:'move',sx:e.clientX,sy:e.clientY,ss:{...S}};
+});
+
+// Resize (handles)
+selBox.querySelectorAll('.h').forEach(h=>{
+  h.addEventListener('mousedown',e=>{
+    e.preventDefault(); e.stopPropagation();
+    drag={mode:'resize',dir:h.dataset.d,sx:e.clientX,sy:e.clientY,ss:{...S}};
+  });
+});
+
+document.addEventListener('mousemove', e=>{
+  if(!drag) return;
+  applyDrag(e.clientX, e.clientY);
+});
+document.addEventListener('mouseup', ()=>{ drag=null; });
+
+// Touch
+selBox.addEventListener('touchstart',e=>{
+  if(e.target.classList.contains('h')) return;
+  const t=e.touches[0];
+  drag={mode:'move',sx:t.clientX,sy:t.clientY,ss:{...S}};
+  e.preventDefault();
+},{passive:false});
+
+selBox.querySelectorAll('.h').forEach(h=>{
+  h.addEventListener('touchstart',e=>{
+    const t=e.touches[0];
+    drag={mode:'resize',dir:h.dataset.d,sx:t.clientX,sy:t.clientY,ss:{...S}};
+    e.preventDefault(); e.stopPropagation();
+  },{passive:false});
+});
+
+document.addEventListener('touchmove',e=>{
+  if(!drag) return;
+  applyDrag(e.touches[0].clientX, e.touches[0].clientY);
+  e.preventDefault();
+},{passive:false});
+document.addEventListener('touchend',()=>{ drag=null; });
+
+function applyDrag(cx,cy){
+  const {ox,oy,w,h} = videoRect();
+  const dx = cx-drag.sx, dy = cy-drag.sy;
+  const s  = drag.ss;
+  const cX = v=>Math.max(ox,Math.min(ox+w,v));
+  const cY = v=>Math.max(oy,Math.min(oy+h,v));
+  const MIN = 20;
+
+  if(drag.mode==='move'){
+    const bw=s.x2-s.x1, bh=s.y2-s.y1;
+    let nx=cX(s.x1+dx), ny=cY(s.y1+dy);
+    if(nx+bw>ox+w) nx=ox+w-bw;
+    if(ny+bh>oy+h) ny=oy+h-bh;
+    S={x1:nx,y1:ny,x2:nx+bw,y2:ny+bh};
+  } else {
+    let {x1,y1,x2,y2}=s; const d=drag.dir;
+    if(d.includes('n')) y1=cY(Math.min(s.y2-MIN,s.y1+dy));
+    if(d.includes('s')) y2=cY(Math.max(s.y1+MIN,s.y2+dy));
+    if(d.includes('w')) x1=cX(Math.min(s.x2-MIN,s.x1+dx));
+    if(d.includes('e')) x2=cX(Math.max(s.x1+MIN,s.x2+dx));
+    S={x1,y1,x2,y2};
+  }
+  renderBox();
+}
+
+// ═══════════════════════════════════════════════════
+// SYNC cfg inputs → box
+// ═══════════════════════════════════════════════════
+function syncCfgToBox(){
+  if(vid.style.display!=='none') initBoxFromCfg();
+}
+
+// ═══════════════════════════════════════════════════
+// COLOR PICKER
+// ═══════════════════════════════════════════════════
+// Starea curentă a culorii
+let colorState = { mode:'white', hue:0, hueRange:15, satMin:100, valMin:200 };
+
+// Presets (oglindesc COLOR_PRESETS din inpaint.py)
+const COLOR_PRESETS = {
+  white:  { mode:'white',  hue:0,   hueRange:15, satMin:100, valMin:200 },
+  yellow: { mode:'hsv',   hue:30,  hueRange:15, satMin:100, valMin:120 },
+  orange: { mode:'hsv',   hue:15,  hueRange:12, satMin:120, valMin:120 },
+  red:    { mode:'hsv',   hue:0,   hueRange:10, satMin:120, valMin:100 },
+  green:  { mode:'hsv',   hue:60,  hueRange:15, satMin:80,  valMin:80  },
+  blue:   { mode:'hsv',   hue:110, hueRange:15, satMin:80,  valMin:80  },
+  cyan:   { mode:'hsv',   hue:90,  hueRange:15, satMin:80,  valMin:80  },
+};
+
+function setColor(name, el){
+  // Dezactivează toate pills
+  document.querySelectorAll('.cpill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+
+  const custom = document.getElementById('customColorRow');
+  if(name === 'custom'){
+    custom.classList.add('show');
+    onCustomColor(document.getElementById('colorPicker').value);
+    return;
+  }
+  custom.classList.remove('show');
+
+  const preset = COLOR_PRESETS[name];
+  if(preset) colorState = { ...preset };
+}
+
+function onCustomColor(hex){
+  // Hex → RGB → HSV (spațiul OpenCV: H 0-180)
+  const r=parseInt(hex.slice(1,3),16)/255;
+  const g=parseInt(hex.slice(3,5),16)/255;
+  const b=parseInt(hex.slice(5,7),16)/255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b), d=max-min;
+  let h=0;
+  if(d>0){
+    if(max===r) h=((g-b)/d+6)%6;
+    else if(max===g) h=(b-r)/d+2;
+    else h=(r-g)/d+4;
+    h=h/6;
+  }
+  const hOcv = Math.round(h*180);
+  const sOcv = Math.round((max>0?d/max:0)*255);
+  const vOcv = Math.round(max*255);
+
+  colorState = {
+    mode:    sOcv < 30 ? 'white' : 'hsv',
+    hue:     hOcv,
+    hueRange:15,
+    satMin:  Math.max(0, sOcv - 80),
+    valMin:  Math.max(0, vOcv - 80),
+  };
+
+  document.getElementById('hI').textContent  = hOcv;
+  document.getElementById('hrI').textContent = 15;
+  document.getElementById('sI').textContent  = colorState.satMin;
+  document.getElementById('vI').textContent  = colorState.valMin;
+}
+
+// ═══════════════════════════════════════════════════
+// AUTO-DETECT (canvas pixel scan — detectează și culoarea)
+// ═══════════════════════════════════════════════════
+function autoDetect(){
+  const btn=document.getElementById('btnAuto');
+  if(!vid.src) return;
+  btn.textContent='⏳'; btn.disabled=true;
+
+  const doScan = ()=>{
+    const c=document.createElement('canvas');
+    c.width=vid.videoWidth; c.height=vid.videoHeight;
+    const ctx=c.getContext('2d');
+    ctx.drawImage(vid,0,0);
+    const {data,width,height}=ctx.getImageData(0,0,c.width,c.height);
+
+    // Scanăm bottom 50% pentru pixeli luminoși
+    const startY=Math.floor(height*0.5);
+    let minR=height,maxR=0,minC=width,maxC=0;
+    // Acumulăm H/S/V pentru a detecta culoarea dominantă
+    let hSum=0, sSum=0, vSum=0, cnt=0;
+
+    for(let y=startY;y<height;y++){
+      for(let x=0;x<width;x++){
+        const i=(y*width+x)*4;
+        const r=data[i]/255, g=data[i+1]/255, b=data[i+2]/255;
+        const mx=Math.max(r,g,b), mn=Math.min(r,g,b), d=mx-mn;
+        // Pixel luminous (posibil text)
+        if(mx>0.7 && (d>0.15||mx>0.85)){
+          if(y<minR)minR=y; if(y>maxR)maxR=y;
+          if(x<minC)minC=x; if(x>maxC)maxC=x;
+          // Calculează H
+          let h=0;
+          if(d>0){
+            if(mx===r) h=((g-b)/d+6)%6;
+            else if(mx===g) h=(b-r)/d+2;
+            else h=(r-g)/d+4;
+            h=h/6;
+          }
+          hSum+=h; sSum+=(mx>0?d/mx:0); vSum+=mx; cnt++;
+        }
+      }
+    }
+
+    if(cnt>50){
+      const pad=20;
+      const t=Math.max(0,   Math.round(((minR-pad)/height)*100));
+      const b2=Math.min(100,Math.round(((maxR+pad)/height)*100));
+      const l=Math.max(0,   Math.round(((minC-pad)/width )*100));
+      const r2=Math.min(100,Math.round(((maxC+pad)/width )*100));
+      document.getElementById('cfg-top').value=t;
+      document.getElementById('cfg-bot').value=b2;
+      document.getElementById('cfg-left').value=l;
+      document.getElementById('cfg-right').value=r2;
+      syncCfgToBox();
+
+      // Detectează culoarea dominantă
+      const avgH=Math.round((hSum/cnt)*180);  // → OpenCV 0-180
+      const avgS=Math.round((sSum/cnt)*255);
+      const avgV=Math.round((vSum/cnt)*255);
+
+      let detectedColor='white';
+      if(avgS>50){
+        // Găsește preset-ul cel mai apropiat
+        const dists={
+          white:999,
+          yellow:Math.abs(avgH-30), orange:Math.abs(avgH-15),
+          red:Math.min(avgH,Math.abs(avgH-180)),
+          green:Math.abs(avgH-60),  blue:Math.abs(avgH-110),
+          cyan:Math.abs(avgH-90),
+        };
+        detectedColor=Object.entries(dists).sort((a,b)=>a[1]-b[1])[0][0];
+      }
+
+      // Selectează pill corespunzătoare
+      const pill=document.querySelector(`.cpill[data-color="${detectedColor}"]`);
+      if(pill) setColor(detectedColor, pill);
+
+      addLog('ok',`Auto: Y ${t}%→${b2}% X ${l}%→${r2}% · culoare: ${detectedColor} (H≈${avgH})`);
+    } else {
+      addLog('err','Auto-detect: nu s-a găsit text în frame');
+    }
+    btn.textContent='⚡ Auto'; btn.disabled=false;
+  };
+
+  vid.addEventListener('seeked', doScan, {once:true});
+  vid.currentTime = Math.min(2, vid.duration*0.1);
+}
+
+function resetZone(){
+  document.getElementById('cfg-top').value=72;
+  document.getElementById('cfg-bot').value=92;
+  document.getElementById('cfg-left').value=0;
+  document.getElementById('cfg-right').value=100;
+  syncCfgToBox();
+}
+
+// ═══════════════════════════════════════════════════
+// JOB
+// ═══════════════════════════════════════════════════
+function getCfg(){
+  const base = {
+    zone_top_pct:    +document.getElementById('cfg-top').value   /100,
+    zone_bot_pct:    +document.getElementById('cfg-bot').value   /100,
+    zone_left_pct:   +document.getElementById('cfg-left').value  /100,
+    zone_right_pct:  +document.getElementById('cfg-right').value /100,
+    white_threshold: +document.getElementById('cfg-white').value,
+    min_blob_area:   +document.getElementById('cfg-blob').value,
+    inpaint_radius:  +document.getElementById('cfg-radius').value,
+    dilate_iters:    +document.getElementById('cfg-dilate').value,
+  };
+
+  // Adaugă parametrii de culoare
+  base.color_mode    = colorState.mode;
+  base.text_hue      = colorState.hue;
+  base.text_hue_range= colorState.hueRange;
+  base.text_sat_min  = colorState.satMin;
+  base.text_val_min  = colorState.valMin;
+
+  return base;
+}
+
+async function startJob(){
+  if(!selFile) return;
+  hide('resultBox'); hide('errorBox');
+  show('progressBox');
+  document.getElementById('btnProcess').disabled=true;
+
+  const fd=new FormData();
+  fd.append('video',selFile);
+  fd.append('config',JSON.stringify(getCfg()));
+
+  let jid;
+  try{
+    const res=await fetch('/upload',{method:'POST',body:fd});
+    const j=await res.json();
+    if(!res.ok||j.error) throw new Error(j.error||'Upload eșuat');
+    jid=j.jobId; jobId=jid;
+    addLog('ok',`Job: ${jid.slice(0,8)}…`);
+  } catch(err){
+    showErr('Upload eșuat: '+err.message);
+    document.getElementById('btnProcess').disabled=false;
+    return;
+  }
+
+  if(evtSrc) evtSrc.close();
+  evtSrc=new EventSource('/caption/events/'+jid);
+  evtSrc.addEventListener('status', e=>{
+    const d=JSON.parse(e.data);
+    updProg(d.percent,d.message);
+    if(d.status==='done'){  evtSrc.close(); hide('progressBox'); showRes(d.downloadUrl,d.fileName); addLog('ok','Gata → '+d.fileName); document.getElementById('btnProcess').disabled=false; }
+    if(d.status==='error'){ evtSrc.close(); hide('progressBox'); showErr(d.error||'?'); addLog('err',d.error||'?'); document.getElementById('btnProcess').disabled=false; }
+  });
+  evtSrc.onerror=()=>{ evtSrc.close(); poll(jid); };
+}
+
+async function poll(jid){
+  const go=async()=>{
+    try{
+      const d=await(await fetch('/status/'+jid)).json();
+      updProg(d.percent,d.message);
+      if(d.status==='done') { hide('progressBox'); showRes(d.downloadUrl,d.fileName); document.getElementById('btnProcess').disabled=false; return; }
+      if(d.status==='error'){ hide('progressBox'); showErr(d.error||'?'); document.getElementById('btnProcess').disabled=false; return; }
+      setTimeout(go,800);
+    } catch{ setTimeout(go,2000); }
+  };
+  go();
+}
+
+// ═══════════════════════════════════════════════════
+// UI
+// ═══════════════════════════════════════════════════
+const show=id=>document.getElementById(id).style.display='block';
+const hide=id=>document.getElementById(id).style.display='none';
+
+function updProg(pct,msg){
+  document.getElementById('prog-fill').style.width=(pct||0)+'%';
+  document.getElementById('prog-pct').textContent=(pct||0)+'%';
+  document.getElementById('prog-status').textContent=msg||'';
+  document.getElementById('prog-label').textContent=pct<92?'Procesare frame-uri...':'Finalizare & mux audio...';
+}
+
+function showRes(url,fn){
+  document.getElementById('dlLink').href=url;
+  document.getElementById('dlLink').download=fn||'clean.mp4';
+  document.getElementById('res-sub').textContent=fn||'clean.mp4';
+  show('resultBox');
+}
+
+function showErr(msg){
+  const b=document.getElementById('errorBox');
+  b.textContent='⚠ '+msg; b.style.display='block';
+}
+
+function resetAll(){
+  selFile=null; jobId=null;
+  if(evtSrc){evtSrc.close();evtSrc=null;}
+  document.getElementById('fileInfo').style.display='none';
+  document.getElementById('btnProcess').disabled=true;
+  document.getElementById('fileInput').value='';
+  vid.style.display='none'; vid.src='';
+  document.getElementById('videoPlaceholder').style.display='flex';
+  document.getElementById('scrubRow').style.display='none';
+  ov.style.display='none';
+  hide('progressBox'); hide('resultBox'); hide('errorBox');
+  updProg(0,'');
+}
+
+function toggleConfig(){
+  document.getElementById('cfgToggle').classList.toggle('open');
+  document.getElementById('cfgPanel').classList.toggle('open');
+}
+
+function switchTab(n,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-'+n).classList.add('active');
+}
+
+function addLog(type,msg){
+  const box=document.getElementById('logBox');
+  const t=new Date().toTimeString().slice(0,8);
+  const el=document.createElement('div');
+  el.className='log-entry';
+  el.innerHTML=`<span class="log-time">${t}</span><span class="log-${type}">${msg}</span>`;
+  if(box.textContent.includes('Nicio activitate')) box.innerHTML='';
+  box.appendChild(el); box.scrollTop=box.scrollHeight;
+}
+function clearLog(){
+  document.getElementById('logBox').innerHTML='<div class="log-entry"><span class="log-time">--:--:--</span><span>Log curățat.</span></div>';
+}
+
+function fmtBytes(b){
+  if(b<1048576) return (b/1024).toFixed(1)+' KB';
+  if(b<1073741824) return (b/1048576).toFixed(1)+' MB';
+  return (b/1073741824).toFixed(2)+' GB';
+}
+function fmtTime(s){
+  const m=Math.floor(s/60),ss=Math.floor(s%60);
+  return m+':'+String(ss).padStart(2,'0');
+}
+
+// ═══════════════════════════════════════════════════
+// TEXT TO SPEECH
+// ═══════════════════════════════════════════════════
+const TTS_MAX_CHARS = 5000;
+
+// ── Voices data (loaded from /tts/voices) ──────────────────────────────────
+let ttsVoices     = [];
+let ttsCurrentVoice = null;
+let ttsLangFilter = 'ALL';
+let ttsEvtSrc     = null;
+
+// Load voices on init
+(async function initTts() {
+  try {
+    const r = await fetch('/tts/voices');
+    const d = await r.json();
+    ttsVoices = d.voices || [];
+    renderVoicePills();
+    // Select default: Guy
+    const def = ttsVoices.find(v => v.name === 'en-US-GuyNeural') || ttsVoices[0];
+    if (def) selectVoice(def);
+  } catch(e) {
+    console.error('TTS voices load error:', e);
+  }
+})();
+
+function renderVoicePills() {
+  const container = document.getElementById('ttsPills');
+  if (!container) return;
+  const filtered = ttsLangFilter === 'ALL'
+    ? ttsVoices
+    : ttsVoices.filter(v => v.lang === ttsLangFilter);
+
+  container.innerHTML = filtered.map(v => {
+    const active = ttsCurrentVoice?.name === v.name ? ' active' : '';
+    const gIcon  = v.gender === 'M' ? '♂' : '♀';
+    return `<button class="tts-vpill${active}" onclick="selectVoice(ttsVoices.find(x=>x.name==='${v.name}'))" title="${v.desc}">
+      ${v.label}<span class="vg">${gIcon}</span>
+    </button>`;
+  }).join('');
+}
+
+function filterLang(lang, btn) {
+  ttsLangFilter = lang;
+  document.querySelectorAll('.tts-ltab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderVoicePills();
+}
+
+function selectVoice(voice) {
+  if (!voice) return;
+  ttsCurrentVoice = voice;
+  // Update info badge
+  const gIcon = voice.gender === 'M' ? '🎙' : '🎤';
+  document.getElementById('ttsVoiceAvatar').textContent = gIcon;
+  document.getElementById('ttsVoiceName').textContent   = voice.label + ' (' + voice.lang + ')';
+  document.getElementById('ttsVoiceDesc').textContent   = voice.desc;
+  // Re-render pills to update active state
+  renderVoicePills();
+}
+
+function onTtsInput() {
+  const len = document.getElementById('ttsText').value.length;
+  const cnt = document.getElementById('ttsCharCount');
+  cnt.textContent  = len + ' / ' + TTS_MAX_CHARS;
+  cnt.className    = 'tts-char-count' + (len > TTS_MAX_CHARS*0.9 ? ' warn':'') + (len >= TTS_MAX_CHARS ? ' over':'');
+  document.getElementById('btnTtsGen').disabled = len === 0;
+}
+
+async function generateTts() {
+  const text = document.getElementById('ttsText').value.trim();
+  if (!text || !ttsCurrentVoice) return;
+
+  // Prosody values
+  const rateVal   = document.getElementById('slRate').value;
+  const pitchVal  = document.getElementById('slPitch').value;
+  const volumeVal = document.getElementById('slVolume').value;
+  const rate   = (rateVal   >= 0 ? '+' : '') + rateVal   + '%';
+  const pitch  = (pitchVal  >= 0 ? '+' : '') + pitchVal  + 'Hz';
+  const volume = (volumeVal >= 0 ? '+' : '') + volumeVal + '%';
+
+  // Reset UI
+  document.getElementById('ttsError').style.display   = 'none';
+  document.getElementById('ttsResult').style.display  = 'none';
+  document.getElementById('ttsProgBox').style.display = 'block';
+  document.getElementById('btnTtsGen').disabled        = true;
+  document.getElementById('btnTtsIcon').textContent    = '⏳';
+  document.getElementById('ttsProgFill').style.width   = '0%';
+
+  // Fake progress (edge-tts e rapid — 1-3s)
+  let fakePct = 0;
+  const fakeIv = setInterval(() => {
+    fakePct = Math.min(fakePct + 12, 85);
+    document.getElementById('ttsProgFill').style.width = fakePct + '%';
+    document.getElementById('ttsProgMsg').textContent  =
+      fakePct < 25 ? 'Se pregătește vocea...' :
+      fakePct < 55 ? ttsCurrentVoice.label + ' vorbește...' :
+                     'Se procesează audio...';
+  }, 180);
+
+  try {
+    const r = await fetch('/tts/generate', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ text, voice: ttsCurrentVoice.name, rate, pitch, volume }),
+    });
+    const data = await r.json();
+    clearInterval(fakeIv);
+
+    if (!r.ok || data.error) throw new Error(data.error || 'HTTP ' + r.status);
+
+    // Poll for completion via SSE
+    if (ttsEvtSrc) ttsEvtSrc.close();
+    ttsEvtSrc = new EventSource('/tts/events/' + data.jobId);
+
+    ttsEvtSrc.addEventListener('status', e => {
+      const d = JSON.parse(e.data);
+      if (d.percent) document.getElementById('ttsProgFill').style.width = d.percent + '%';
+      if (d.message) document.getElementById('ttsProgMsg').textContent = d.message;
+
+      if (d.status === 'done') {
+        ttsEvtSrc.close();
+        finishTts(d.downloadUrl, d.fileName);
+      }
+      if (d.status === 'error') {
+        ttsEvtSrc.close();
+        showTtsError(d.error || 'Eroare necunoscută.');
+        document.getElementById('btnTtsGen').disabled = false;
+        document.getElementById('btnTtsIcon').textContent = '🎤';
+      }
+    });
+
+    ttsEvtSrc.onerror = () => {
+      ttsEvtSrc.close();
+      clearInterval(fakeIv);
+      showTtsError('Conexiune pierdută.');
+      document.getElementById('btnTtsGen').disabled = false;
+      document.getElementById('btnTtsIcon').textContent = '🎤';
+    };
+
+  } catch(err) {
+    clearInterval(fakeIv);
+    document.getElementById('ttsProgBox').style.display = 'none';
+    showTtsError(err.message);
+    document.getElementById('btnTtsGen').disabled = false;
+    document.getElementById('btnTtsIcon').textContent = '🎤';
+  }
+}
+
+function finishTts(url, fileName) {
+  document.getElementById('ttsProgFill').style.width = '100%';
+  document.getElementById('ttsProgMsg').textContent  = 'Gata!';
+  setTimeout(() => {
+    document.getElementById('ttsProgBox').style.display = 'none';
+    const audio = document.getElementById('ttsAudio');
+    audio.src   = url; audio.load();
+    const dl    = document.getElementById('ttsDlLink');
+    dl.href     = url; dl.download = fileName || 'speech.mp3';
+    document.getElementById('ttsResult').style.display = 'block';
+    audio.play().catch(() => {});
+    document.getElementById('btnTtsGen').disabled = false;
+    document.getElementById('btnTtsIcon').textContent = '🎤';
+  }, 400);
+}
+
+function showTtsError(msg) {
+  const b = document.getElementById('ttsError');
+  b.textContent = '⚠ ' + msg; b.style.display = 'block';
+  document.getElementById('ttsProgBox').style.display = 'none';
+}
+
+function resetTts() {
+  document.getElementById('ttsResult').style.display  = 'none';
+  document.getElementById('ttsError').style.display   = 'none';
+  document.getElementById('ttsProgFill').style.width  = '0%';
+  const a = document.getElementById('ttsAudio');
+  a.pause(); a.src = '';
+  document.getElementById('ttsText').value = '';
+  document.getElementById('ttsCharCount').textContent = '0 / ' + TTS_MAX_CHARS;
+  document.getElementById('btnTtsGen').disabled = true;
+}
+
+
+// ═══════════════════════════════════════════════════
+// TOOL NAVIGATION
+// ═══════════════════════════════════════════════════
+function showTool(name, btn) {
+  document.querySelectorAll('.tool-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('tool-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  // Close sidebar on mobile
+  if (window.innerWidth <= 860) document.getElementById('sidebar').classList.remove('open');
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ═══════════════════════════════════════════════════
+// YT DOWNLOADER
+// ═══════════════════════════════════════════════════
+let ytDlEvt = null;
+
+async function startYtDownload() {
+  const url     = document.getElementById('ytDlUrl').value.trim();
+  const quality = document.getElementById('ytQuality').value;
+  if (!url) { ytShowErr('ytDlError','Lipseşte URL-ul YouTube.'); return; }
+
+  ytHideAll('dl');
+  ytShowProg('dl');
+  document.getElementById('btnYtDl').disabled = true;
+
+  let jobId;
+  try {
+    const r = await fetch('/yt/download', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, quality }),
+    });
+    const j = await r.json();
+    if (!r.ok || j.error) throw new Error(j.error || 'Eroare server');
+    jobId = j.jobId;
+  } catch(e) {
+    ytHideAll('dl');
+    ytShowErr('ytDlError', e.message);
+    document.getElementById('btnYtDl').disabled = false;
+    return;
+  }
+
+  if (ytDlEvt) ytDlEvt.close();
+  ytDlEvt = new EventSource('/yt/events/' + jobId);
+
+  ytDlEvt.addEventListener('status', e => {
+    const d = JSON.parse(e.data);
+    ytUpdProg('dl', d.percent, d.message);
+
+    if (d.status === 'done') {
+      ytDlEvt.close();
+      ytHideAll('dl');
+      document.getElementById('ytDlLink').href     = d.downloadUrl;
+      document.getElementById('ytDlLink').download = d.fileName || 'video.mp4';
+      document.getElementById('ytDlResName').textContent = d.fileName || 'video.mp4';
+      document.getElementById('ytDlResult').style.display = 'block';
+      document.getElementById('btnYtDl').disabled = false;
+    }
+    if (d.status === 'error') {
+      ytDlEvt.close();
+      ytHideAll('dl');
+      ytShowErr('ytDlError', d.error || 'Eroare necunoscută.');
+      document.getElementById('btnYtDl').disabled = false;
+    }
+  });
+
+  ytDlEvt.onerror = () => { ytDlEvt.close(); ytPollStatus(jobId, 'dl'); };
+}
+
+// ═══════════════════════════════════════════════════
+// YT TRANSCRIPT
+// ═══════════════════════════════════════════════════
+let ytTrEvt = null;
+let trData  = null;  // { plain, timestamped }
+let showTs  = false;
+
+async function startYtTranscript() {
+  const url        = document.getElementById('ytTrUrl').value.trim();
+  const targetLang = document.getElementById('ytTrLang').value;
+  if (!url) { ytShowErr('ytTrError','Lipseşte URL-ul YouTube.'); return; }
+
+  ytHideAll('tr');
+  ytShowProg('tr');
+  document.getElementById('btnYtTr').disabled = true;
+
+  let jobId;
+  try {
+    const r = await fetch('/yt/transcript', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, targetLang }),
+    });
+    const j = await r.json();
+    if (!r.ok || j.error) throw new Error(j.error || 'Eroare server');
+    jobId = j.jobId;
+  } catch(e) {
+    ytHideAll('tr');
+    ytShowErr('ytTrError', e.message);
+    document.getElementById('btnYtTr').disabled = false;
+    return;
+  }
+
+  if (ytTrEvt) ytTrEvt.close();
+  ytTrEvt = new EventSource('/yt/transcript/events/' + jobId);
+
+  ytTrEvt.addEventListener('status', e => {
+    const d = JSON.parse(e.data);
+    ytUpdProg('tr', d.percent, d.message);
+
+    if (d.status === 'done' && d.result) {
+      ytTrEvt.close();
+      ytHideAll('tr');
+      const res = d.result;
+      trData = { plain: res.plain, timestamped: res.timestamped };
+      showTs = false;
+      document.getElementById('trText').textContent = res.plain;
+      document.getElementById('trInfo').innerHTML =
+        `Limbă: <b>${res.original_lang}</b>`
+        + (res.translated_lang && res.translated_lang !== res.original_lang
+           ? ` → <b>${res.translated_lang}</b>` : '')
+        + ` · <b>${res.segment_count}</b> segmente`
+        + ` · <b>${res.char_count}</b> caractere`;
+      document.getElementById('btnTs').classList.remove('on');
+      document.getElementById('ytTrResult').style.display = 'block';
+      document.getElementById('btnYtTr').disabled = false;
+    }
+    if (d.status === 'error') {
+      ytTrEvt.close();
+      ytHideAll('tr');
+      ytShowErr('ytTrError', d.error || 'Eroare necunoscută.');
+      document.getElementById('btnYtTr').disabled = false;
+    }
+  });
+
+  ytTrEvt.onerror = () => { ytTrEvt.close(); ytPollStatusTr(jobId); };
+}
+
+function toggleTimestamps() {
+  if (!trData) return;
+  showTs = !showTs;
+  document.getElementById('trText').textContent = showTs ? trData.timestamped : trData.plain;
+  const btn = document.getElementById('btnTs');
+  btn.classList.toggle('on', showTs);
+}
+
+function copyTranscript() {
+  if (!trData) return;
+  const text = showTs ? trData.timestamped : trData.plain;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('btnCopy');
+    btn.textContent = '✓ Copiat!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '📋 Copiază'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function downloadTranscript() {
+  if (!trData) return;
+  const text = showTs ? trData.timestamped : trData.plain;
+  const blob = new Blob([text], { type: 'text/plain' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = 'transcript.txt';
+  a.click();
+}
+
+// ═══════════════════════════════════════════════════
+// YT UI HELPERS
+// ═══════════════════════════════════════════════════
+function ytHideAll(type) {
+  document.getElementById('ytDlProg').style.display   = 'none';
+  document.getElementById('ytDlResult').style.display = 'none';
+  document.getElementById('ytDlError').style.display  = 'none';
+  document.getElementById('ytTrProg').style.display   = 'none';
+  document.getElementById('ytTrResult').style.display = 'none';
+  document.getElementById('ytTrError').style.display  = 'none';
+}
+
+function ytShowProg(type) {
+  document.getElementById(`yt${type === 'dl' ? 'Dl' : 'Tr'}Prog`).style.display = 'block';
+}
+
+function ytUpdProg(type, pct, msg) {
+  const P = type === 'dl' ? 'Dl' : 'Tr';
+  document.getElementById(`yt${P}Fill`).style.width   = (pct||0) + '%';
+  document.getElementById(`yt${P}ProgPct`).textContent= (pct||0) + '%';
+  document.getElementById(`yt${P}ProgMsg`).textContent= msg || '';
+  document.getElementById(`yt${P}ProgLabel`).textContent = pct < 99 ? (type==='dl'?'Descărcând...':'Se procesează...') : 'Finalizare...';
+}
+
+function ytShowErr(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = '⚠ ' + msg;
+  el.style.display = 'block';
+}
+
+async function ytPollStatus(jobId, type) {
+  const go = async () => {
+    try {
+      const d = await (await fetch('/status/' + jobId)).json();
+      ytUpdProg(type, d.percent, d.message);
+      if (d.status === 'done') {
+        ytHideAll(type);
+        document.getElementById('ytDlLink').href     = d.downloadUrl;
+        document.getElementById('ytDlLink').download = d.fileName || 'video.mp4';
+        document.getElementById('ytDlResName').textContent = d.fileName || 'video.mp4';
+        document.getElementById('ytDlResult').style.display = 'block';
+        document.getElementById('btnYtDl').disabled = false;
+        return;
+      }
+      if (d.status === 'error') {
+        ytHideAll(type); ytShowErr('ytDlError', d.error || '?');
+        document.getElementById('btnYtDl').disabled = false;
+        return;
+      }
+      setTimeout(go, 800);
+    } catch { setTimeout(go, 2000); }
+  };
+  go();
+}
+
+async function ytPollStatusTr(jobId) {
+  const go = async () => {
+    try {
+      const d = await (await fetch('/status/' + jobId)).json();
+      ytUpdProg('tr', d.percent, d.message);
+      if (d.status === 'done' && d.result) {
+        ytHideAll('tr');
+        const res = d.result;
+        trData = { plain: res.plain, timestamped: res.timestamped };
+        document.getElementById('trText').textContent = res.plain;
+        document.getElementById('ytTrResult').style.display = 'block';
+        document.getElementById('btnYtTr').disabled = false;
+        return;
+      }
+      if (d.status === 'error') {
+        ytHideAll('tr'); ytShowErr('ytTrError', d.error || '?');
+        document.getElementById('btnYtTr').disabled = false;
+        return;
+      }
+      setTimeout(go, 800);
+    } catch { setTimeout(go, 2000); }
+  };
+  go();
+}
+</script>
+</body>
+</html>

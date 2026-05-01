@@ -1,0 +1,6 @@
+opencv-python-headless
+numpy
+yt-dlp
+youtube-transcript-api
+deep-translator
+edge-tts
